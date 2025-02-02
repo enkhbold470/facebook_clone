@@ -32,10 +32,10 @@ now = datetime.datetime.now()
 timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_secret_key")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["UPLOAD_FOLDER"] = "userUpload"
 UPLOAD_FOLDER = "userUpload"
-DATABASE_NAME = os.getenv("DATABASE_NAME", "a.sqlite")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 init_db()
 
 # Flask-Login setup
@@ -289,7 +289,11 @@ def edit_profile():
         )  # Changed to username
 
     return render_template(
-        "edit_profile.html", user=current_user, UPLOAD_FOLDER=UPLOAD_FOLDER
+        "edit_profile.html",
+        user=current_user,
+        UPLOAD_FOLDER=UPLOAD_FOLDER,
+        firstName="",
+        lastName="",
     )
 
 
@@ -340,4 +344,14 @@ def feed():
 # add port
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    env = os.getenv("FLASK_ENV", "development")
+    port = int(os.getenv("PORT", 5000))
+
+    if env == "development":
+        # Development settings
+        app.run(host="0.0.0.0", port=port, debug=True)
+    else:
+        # Production settings - use Waitress
+        from waitress import serve
+
+        serve(app, host="0.0.0.0", port=port)
