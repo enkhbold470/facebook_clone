@@ -14,9 +14,9 @@
         <!-- edit profile picture-->
         <div class="max-w-xs">
 
-            <img src="/{{UPLOAD_FOLDER}}/{{user.profile_picture }}" class="mb-4">
+            <img title="Profile Picture" src="/{{UPLOAD_FOLDER}}/{{user.profile_picture }}" class="mb-4">
         </div>
-        <input type="file" name="profile_picture" class="mb-4">
+        <input type="file" placeholder="/placeholder.jpg" name="profile_picture" class="mb-4">
        
         <input type="text" 
                name="username" 
@@ -24,8 +24,8 @@
                title="Username can only contain letters and numbers without spaces"
                value="{{ user.username }}" 
                class="w-full p-2 mb-4 border rounded">
-        <input type="text" name="firstName" placeholder="First Name" value="{{ user.firstName }}" class="w-full p-2 mb-4 border rounded">
-        <input type="text" name="lastName" placeholder="Last Name" value="{{ user.lastName }}" class="w-full p-2 mb-4 border rounded">
+        <input type="text" name="firstName" placeholder="First Name" value="{{ firstName }}" class="w-full p-2 mb-4 border rounded">
+        <input type="text" name="lastName" placeholder="Last Name" value="{{ lastName }}" class="w-full p-2 mb-4 border rounded">
         <textarea name="bio" placeholder="Your bio" class="w-full p-2 mb-4 border rounded">{{ user.bio }}</textarea>
         <input type="text" name="location" placeholder="Location" value="{{ user.location }}" class="w-full p-2 mb-4 border rounded">
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
