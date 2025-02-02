@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1 class="text-2xl font-bold mb-4">Login</h1>
+    <form method="POST">
+        <input type="text" name="username" placeholder="Username" class="block w-full p-2 mb-4 border rounded">
+        <input type="password" name="password" placeholder="Password" class="block w-full p-2 mb-4 border rounded">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Login</button>
+    </form>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1 class="text-2xl font-bold mb-4">News Feed</h1>
+
+    <!-- Add Create Post Form -->
+    <div class="flex justify-center mb-8">
+        <div class="bg-white p-4 rounded shadow max-w-lg w-full">
+            <form method="POST" action="{{ url_for('create_post') }}" enctype="multipart/form-data" class="space-y-4">
+                <textarea 
+                    name="content" 
+                    placeholder="What's on your mind?" 
+                    class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    required
+                ></textarea>
+                <div class="flex items-center justify-between">
+                    <input 
+                        type="file" 
+                        name="image" 
+                        accept="image/*"
+                        class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    >
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Post
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% for post in posts %}
+    <div class="flex justify-center">
+        
+        <div class="bg-white p-4 mb-4 rounded shadow max-w-lg">
+            <a class="hover:underline" href="{{ url_for('profile', username=post.username) }}">
+
+                <div class="flex items-center mb-4">
+                    <img src="/{{UPLOAD_FOLDER}}/{{ post.profile_picture }}" alt="{{ post.username }}" class="w-10 h-10 rounded-full mr-2">
+                    <div>
+                        <h3 class="font-bold">@{{ post.username }}</h3>
+                        <p class="text-sm text-gray-500">{{ post.created_at }}</p>
+                    </div>
+                </div>
+            </a>
+            <p class="mb-4">{{ post.content }}</p>
+            {% if post.image %}
+                <img src="{{ post.image }}" alt="Post image" class="w-full mb-4">
+            {% endif %}
+        </div>
+
+    </div>
+    {% endfor %}
+{% endblock %}
