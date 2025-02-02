@@ -32,10 +32,10 @@ now = datetime.datetime.now()
 timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_secret_key")
 app.config["UPLOAD_FOLDER"] = "userUpload"
 UPLOAD_FOLDER = "userUpload"
-DATABASE_NAME = os.getenv("DATABASE_NAME")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "a.sqlite")
 init_db()
 
 # Flask-Login setup
