@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1 class="text-2xl font-bold mb-4">Register</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <form method="POST" class="max-w-md mx-auto mt-8">
+        <input type="text" 
+               name="username" 
+               pattern="[a-zA-Z0-9]+" 
+               title="Username can only contain letters and numbers without spaces"
+               required 
+               class="w-full p-2 mb-4 border rounded"
+               placeholder="Username">
+               
+        <input type="password" 
+               name="password" 
+               minlength="8" 
+               required 
+               class="block w-full p-2 mb-4 border rounded"
+               placeholder="Password (minimum 8 characters)"
+               oninput="checkPasswordMatch();">
+        
+        <input type="password" 
+               name="confirm_password" 
+               minlength="8" 
+               required 
+               class="block w-full p-2 mb-4 border rounded"
+               placeholder="Confirm Password"
+               oninput="checkPasswordMatch();">
+        
+        <div id="passwordMatchMessage" class="text-red-600 mb-4 hidden">
+            Passwords do not match
+        </div>
+
+        <button type="submit" 
+                id="submitButton" 
+                class="bg-blue-600 text-white px-4 py-2 rounded">Register</button>
+    </form>
+
+    <script>
+        function checkPasswordMatch() {
+            const password = document.querySelector('input[name="password"]').value;
+            const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
+            const message = document.getElementById('passwordMatchMessage');
+            const submitButton = document.getElementById('submitButton');
+
+            if (password === confirmPassword) {
+                message.classList.add('hidden');
+                submitButton.disabled = false;
+            } else {
+                message.classList.remove('hidden');
+                submitButton.disabled = true;
+            }
+        }
+    </script>
+{% endblock %}

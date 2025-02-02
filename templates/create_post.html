@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1 class="text-2xl font-bold mb-4">Create Post</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <textarea name="content" placeholder="What's on your mind?" class="w-full p-2 mb-4 border rounded"></textarea>
+        <input type="file" name="image" class="mb-4">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Post</button>
+    </form>
+{% endblock %}
