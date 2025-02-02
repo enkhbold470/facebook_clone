@@ -18,10 +18,9 @@ timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') 
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER')
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
+app.config['UPLOAD_FOLDER'] = "userUpload"
+UPLOAD_FOLDER = "userUpload"
 DATABASE_NAME = os.getenv('DATABASE_NAME')
-print(UPLOAD_FOLDER)
 init_db()
 
 # Flask-Login setup
