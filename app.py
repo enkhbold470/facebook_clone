@@ -196,7 +196,7 @@ def delete_post_function(post_id):
         flash("Post deleted successfully.")
     except Exception as e:
         flash(f"An error occurred while deleting the post: {str(e)}")
-    return redirect(url_for("profile"))
+    return redirect(url_for("profile", username=current_user.username))
 
 
 @app.route("/delete_profile_picture", methods=["GET", "POST"])
