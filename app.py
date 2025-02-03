@@ -19,12 +19,21 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from database import get_posts, create_new_post, update_profile, init_db
+from database import (
+    get_posts,
+    create_new_post,
+    update_profile,
+    init_db,
+    delete_post,
+    remove_profile_picture,
+)
 import sqlite3
 import os
 import datetime
 from dotenv import load_dotenv
 import re  # Add this at the top with other imports
+import random
+import string
 
 load_dotenv()
 
@@ -172,10 +181,29 @@ def profile(username):  # Changed parameter
             posts=posts,
             is_owner=is_owner,
             UPLOAD_FOLDER=UPLOAD_FOLDER,
+            # post_id=posts,  # Pass post_id to template
         )
     else:
         flash("User not found.")
         return redirect(url_for("index"))
+
+
+@app.route("/delete_post_route/<int:post_id>", methods=["POST"])
+@login_required
+def delete_post_function(post_id):
+    try:
+        delete_post(post_id)
+        flash("Post deleted successfully.")
+    except Exception as e:
+        flash(f"An error occurred while deleting the post: {str(e)}")
+    return redirect(url_for("profile"))
+
+
+@app.route("/delete_profile_picture", methods=["GET", "POST"])
+@login_required
+def delete_profile_picture():
+    remove_profile_picture(current_user.id)
+    return render_template("edit_profile.html", user=current_user)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -226,7 +254,13 @@ def create_post():
 
             image_path = None
             if image:
-                filename = secure_filename(f"post_{current_user.id}_{timestamp}.jpg")
+                length = 8
+                random_string = "".join(
+                    random.choices(string.ascii_letters + string.digits, k=length)
+                )
+                filename = secure_filename(
+                    f"post_{current_user.id}_{timestamp}_{random_string}.jpg"
+                )
                 try:
                     image.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                     image_path = f"/userUpload/{filename}"
@@ -260,10 +294,16 @@ def edit_profile():
         location = request.form.get("location")
 
         if changeProfilePicture:
-            filename = secure_filename(f"{current_user.id}.jpg")
+            length = 8
+            random_string = "".join(
+                random.choices(string.ascii_letters + string.digits, k=length)
+            )
+            filename = secure_filename(f"profile_{current_user.id}_{random_string}.jpg")
+
             changeProfilePicture.save(
                 os.path.join(app.config["UPLOAD_FOLDER"], filename)
             )
+            image_path = f"/userUpload/{filename}"
             conn = sqlite3.connect(DATABASE_NAME)
             cursor = conn.cursor()
             cursor.execute(
@@ -272,6 +312,8 @@ def edit_profile():
             )
             conn.commit()
             conn.close()
+            create_new_post(current_user.id, "Updated profile picture!", image_path)
+
             flash("Profile picture updated!")
 
         if not is_valid_username(changeUsername):
@@ -311,7 +353,10 @@ def feed():
 
             image_path = None
             if image:
-                filename = secure_filename(f"post_{current_user.id}_{timestamp}.jpg")
+
+                filename = secure_filename(
+                    f"post_{current_user.id}_{timestamp}_{Math.random}.jpg"
+                )
                 try:
                     image.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                     image_path = f"/userUpload/{filename}"

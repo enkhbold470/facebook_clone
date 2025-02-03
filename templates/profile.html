@@ -30,7 +30,7 @@
             <h2 class="text-xl font-bold mb-4">Posts</h2>
             {% if posts %}
                 {% for post in posts %}
-                <div class="bg-white p-4 mb-4 rounded shadow max-w-lg">
+                <div class="bg-white p-4 mb-4 rounded shadow max-w-lg border-2 border-gray-200">
                     <a class="hover:underline" href="{{ url_for('profile', username=post.username) }}">
         
                         <div class="flex items-center mb-4">
@@ -38,13 +38,24 @@
                             <div>
                                 <h3 class="font-bold">@{{ post.username }}</h3>
                                 <p class="text-sm text-gray-500">{{ post.created_at }}</p>
+                                
                             </div>
+                            
                         </div>
+                     
                     </a>
-                    <p class="mb-4">{{ post.content }}</p>
+            
+                    <p class="mb-4">{{ post.content }}</p> 
                     {% if post.image %}
                         <img src="{{ post.image }}" alt="Post image" class="w-full mb-4">
                     {% endif %}
+                    <div class="flex justify-end">
+                        <form action="{{ url_for('delete_post_function', post_id=post.id) }}" method="POST">
+                            <button type="submit" class="text-red-500 hover:underline">Delete</button>
+                          </form>
+                        </form>
+
+                    </div>
                 </div>
                 {% endfor %}
             {% else %}

@@ -74,6 +74,34 @@ def create_new_post(user_id, content, image=None):
     conn.close()
 
 
+def delete_post(post_id):
+    """Delete a post by its ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM posts WHERE id = ?", (post_id,))
+    conn.commit()
+    conn.close()
+
+
+def remove_profile_picture(user_id):
+    """Remove the user's profile picture."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE user
+        SET profile_picture = 'placeholder.jpg'
+        WHERE id = ?
+    """,
+        (user_id,),
+    )
+
+    conn.commit()
+    conn.close()
+
+
 def create_user(username, password):
     """Create a new user in the database."""
     hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
