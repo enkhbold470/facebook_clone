@@ -39,7 +39,7 @@ def init_db():
     """
     )
 
-    # Create posts table
+    # Create posts table with global PST time for created_at
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS posts (
@@ -47,7 +47,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             content TEXT NOT NULL,
             image TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT (datetime('now', '-8 hours')),
             FOREIGN KEY(user_id) REFERENCES user(id)
         )
     """
