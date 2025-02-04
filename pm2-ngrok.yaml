@@ -1,11 +1,11 @@
 apps:
   - name: "ngrok"
-    script: "./ngrok"
+    script: "ngrok"
     args: "http --url=light-pleasantly-ape.ngrok-free.app 5000"
     instances: "1"
     autorestart: true
     max_restarts: 10
-    max_memory_restart: "500M"
+    max_memory_restart: "1024M"
     watch: false
     error_file: "err-prod.log"
     out_file: "out-prod.log"
