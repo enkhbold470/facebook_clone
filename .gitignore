@@ -4,6 +4,7 @@ __pycache__/
 venv/
 *.sqlite
 
-userUpload/*
+/api/userUpload/*
 !placeholder.jpg
 !README.md
+.vercel
