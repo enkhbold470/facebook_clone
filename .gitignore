@@ -8,3 +8,4 @@ venv/
 !placeholder.jpg
 !README.md
 .vercel
+*.egg-info
