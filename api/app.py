@@ -19,6 +19,12 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+import sys
+import os
+
+# Add the current directory to Python path for Vercel
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from database import (
     get_posts,
     create_new_post,
@@ -26,8 +32,14 @@ from database import (
     init_db,
     delete_post,
     remove_profile_picture,
+    get_user_by_username,
+    get_user_by_id,
+    db,
+    init_app,
+    User as DBUser,
+    create_user,
+    update_profile_picture,
 )
-import sqlite3
 import os
 import datetime
 from dotenv import load_dotenv
@@ -41,11 +53,12 @@ now = datetime.datetime.now()
 timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your-secret-key-here")
 app.config["UPLOAD_FOLDER"] = "userUpload"
 UPLOAD_FOLDER = "userUpload"
-DATABASE_NAME = os.getenv("DATABASE_NAME")
-init_db()
+
+# Initialize database with app
+init_app(app)
 
 # Flask-Login setup
 login_manager = LoginManager()
@@ -77,23 +90,18 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect(DATABASE_NAME)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM user WHERE id = ?", (user_id,))
-    user_data = cursor.fetchone()
-    conn.close()
-
+    user_data = get_user_by_id(user_id)
+    
     if user_data:
         return User(
-            user_data["id"],
-            user_data["username"],
-            user_data["password"],
-            user_data["profile_picture"],
-            user_data["firstName"],
-            user_data["lastName"],
-            user_data["bio"],
-            user_data["location"],
+            user_data.id,
+            user_data.username,
+            user_data.password,
+            user_data.profile_picture,
+            user_data.firstName,
+            user_data.lastName,
+            user_data.bio,
+            user_data.location,
         )
     return None
 
@@ -114,24 +122,19 @@ def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        conn = sqlite3.connect(DATABASE_NAME)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user WHERE username = ?", (username,))
-        user_data = cursor.fetchone()
-        conn.close()
+        user_data = get_user_by_username(username)
 
-        if user_data and check_password_hash(user_data["password"], password):
+        if user_data and check_password_hash(user_data.password, password):
             # Include all user fields when creating User object
             user = User(
-                user_data["id"],
-                user_data["username"],
-                user_data["password"],
-                user_data["profile_picture"],
-                user_data["firstName"],
-                user_data["lastName"],
-                user_data["bio"],
-                user_data["location"],
+                user_data.id,
+                user_data.username,
+                user_data.password,
+                user_data.profile_picture,
+                user_data.firstName,
+                user_data.lastName,
+                user_data.bio,
+                user_data.location,
             )
             login_user(user)
             return redirect(url_for("feed"))
@@ -150,25 +153,18 @@ def logout():
 @app.route("/profile/<username>")  # Changed from <int:user_id>
 @login_required
 def profile(username):  # Changed parameter
-    conn = sqlite3.connect(DATABASE_NAME)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM user WHERE username = ?", (username,)
-    )  # Changed query
-    user_data = cursor.fetchone()
-    conn.close()
+    user_data = get_user_by_username(username)
 
     if user_data:
         profile_user = User(
-            user_data["id"],
-            user_data["username"],
-            user_data["password"],
-            user_data["profile_picture"],
-            user_data["firstName"],
-            user_data["lastName"],
-            user_data["bio"],
-            user_data["location"],
+            user_data.id,
+            user_data.username,
+            user_data.password,
+            user_data.profile_picture,
+            user_data.firstName,
+            user_data.lastName,
+            user_data.bio,
+            user_data.location,
         )
 
         posts = get_posts(profile_user.id)
@@ -216,22 +212,11 @@ def register():
             flash("Username can only contain letters and numbers without spaces")
             return render_template("register.html")
 
-        hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
-
-        conn = sqlite3.connect(DATABASE_NAME)
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                "INSERT INTO user (username, password) VALUES (?, ?)",
-                (username, hashed_password),
-            )
-            conn.commit()
+        if create_user(username, password):
             flash("Registration successful! Please log in.")
             return redirect(url_for("login"))
-        except sqlite3.IntegrityError:
+        else:
             flash("Username already exists. Please choose a different one.")
-        finally:
-            conn.close()
     return render_template("register.html")
 
 
@@ -304,14 +289,8 @@ def edit_profile():
                 os.path.join(app.config["UPLOAD_FOLDER"], filename)
             )
             image_path = f"/userUpload/{filename}"
-            conn = sqlite3.connect(DATABASE_NAME)
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE user SET profile_picture = ? WHERE id = ?",
-                (f"{filename}", current_user.id),
-            )
-            conn.commit()
-            conn.close()
+            
+            update_profile_picture(current_user.id, filename)
             create_new_post(current_user.id, "Updated profile picture!", image_path)
 
             flash("Profile picture updated!")
@@ -375,9 +354,9 @@ def feed():
             UPLOAD_FOLDER=UPLOAD_FOLDER,
             current_user=current_user,
         )
-    except sqlite3.Error:
+    except Exception as e:
         flash("An error occurred while retrieving posts.")
-        posts = "No posts available"
+        posts = []
         return render_template(
             "feed.html",
             posts=posts,
@@ -400,3 +379,4 @@ if __name__ == "__main__":
         from waitress import serve
 
         serve(app, host="0.0.0.0", port=port)
+
