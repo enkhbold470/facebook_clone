@@ -19,6 +19,12 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+import sys
+import os
+
+# Add the current directory to Python path for Vercel
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from database import (
     get_posts,
     create_new_post,
