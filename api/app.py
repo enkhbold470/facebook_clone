@@ -40,6 +40,7 @@ from database import (
     create_user,
     update_profile_picture,
 )
+from blob_storage import get_blob_storage, is_blob_storage_available
 import os
 import datetime
 from dotenv import load_dotenv
@@ -54,11 +55,42 @@ timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your-secret-key-here")
-app.config["UPLOAD_FOLDER"] = "userUpload"
-UPLOAD_FOLDER = "userUpload"
+
+# File storage configuration
+if is_blob_storage_available():
+    print("Using Vercel Blob Storage for file uploads")
+    STORAGE_TYPE = "blob"
+    UPLOAD_FOLDER = ""  # Not needed for blob storage
+else:
+    print("Using local file storage (fallback)")
+    app.config["UPLOAD_FOLDER"] = "userUpload"
+    UPLOAD_FOLDER = "userUpload"
+    STORAGE_TYPE = "local"
 
 # Initialize database with app
 init_app(app)
+
+# Template helper function
+@app.template_global()
+def get_image_url(image_path):
+    """Get the correct URL for an image, handling both blob storage and local storage"""
+    if not image_path or image_path == 'placeholder.jpg':
+        # Return a data URL for a simple placeholder image
+        return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' text-anchor='middle' dy='0.3em' font-family='Arial, sans-serif' font-size='12' fill='%236b7280'%3ENo Image%3C/text%3E%3C/svg%3E"
+    
+    # If it's already a full URL (blob storage), return as-is
+    if image_path.startswith('http://') or image_path.startswith('https://'):
+        return image_path
+    
+    # If it's a local file path, add the upload folder prefix
+    if STORAGE_TYPE == "local":
+        if image_path.startswith('/userUpload/'):
+            return image_path
+        else:
+            return f"/userUpload/{image_path}"
+    
+    # Fallback
+    return image_path
 
 # Flask-Login setup
 login_manager = LoginManager()
@@ -222,7 +254,14 @@ def register():
 
 @app.route("/userUpload/<filename>")
 def uploaded_file(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    # For backward compatibility with local storage
+    if STORAGE_TYPE == "local":
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    else:
+        # For blob storage, this route shouldn't be used as files are served directly from blob storage
+        # But we'll redirect to the blob URL if we can find it
+        flash("File serving via blob storage - URL should be used directly")
+        return redirect(url_for("index"))
 
 
 @app.route("/create_post", methods=["GET", "POST"])
@@ -239,16 +278,27 @@ def create_post():
 
             image_path = None
             if image:
-                length = 8
-                random_string = "".join(
-                    random.choices(string.ascii_letters + string.digits, k=length)
-                )
-                filename = secure_filename(
-                    f"post_{current_user.id}_{timestamp}_{random_string}.jpg"
-                )
                 try:
-                    image.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-                    image_path = f"/userUpload/{filename}"
+                    if STORAGE_TYPE == "blob":
+                        # Use Vercel Blob Storage
+                        blob_storage = get_blob_storage()
+                        if blob_storage:
+                            image_path = blob_storage.upload_image(image, current_user.id, "post")
+                            if not image_path:
+                                flash("Error uploading image to blob storage, post created without image")
+                        else:
+                            flash("Blob storage not available, post created without image")
+                    else:
+                        # Use local storage (fallback)
+                        length = 8
+                        random_string = "".join(
+                            random.choices(string.ascii_letters + string.digits, k=length)
+                        )
+                        filename = secure_filename(
+                            f"post_{current_user.id}_{timestamp}_{random_string}.jpg"
+                        )
+                        image.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                        image_path = f"/userUpload/{filename}"
                 except Exception as e:
                     app.logger.error(f"Error saving image: {str(e)}")
                     flash("Error uploading image, post created without image")
@@ -279,21 +329,54 @@ def edit_profile():
         location = request.form.get("location")
 
         if changeProfilePicture:
-            length = 8
-            random_string = "".join(
-                random.choices(string.ascii_letters + string.digits, k=length)
-            )
-            filename = secure_filename(f"profile_{current_user.id}_{random_string}.jpg")
+            try:
+                if STORAGE_TYPE == "blob":
+                    # Use Vercel Blob Storage
+                    blob_storage = get_blob_storage()
+                    if blob_storage:
+                        # Get current profile picture for cleanup
+                        old_profile_picture = current_user.profile_picture
+                        
+                        image_url = blob_storage.upload_image(changeProfilePicture, current_user.id, "profile")
+                        if image_url:
+                            # For blob storage, we store the full URL as the profile picture
+                            update_profile_picture(current_user.id, image_url)
+                            create_new_post(current_user.id, "Updated profile picture!", image_url)
+                            
+                            # Cleanup old profile picture if it's a blob URL
+                            if (old_profile_picture and 
+                                old_profile_picture != 'placeholder.jpg' and
+                                (old_profile_picture.startswith('http://') or old_profile_picture.startswith('https://'))):
+                                try:
+                                    blob_storage.delete_file(old_profile_picture)
+                                except Exception as cleanup_error:
+                                    print(f"Warning: Failed to cleanup old profile picture: {cleanup_error}")
+                            
+                            flash("Profile picture updated!")
+                        else:
+                            flash("Error uploading profile picture to blob storage")
+                    else:
+                        flash("Blob storage not available")
+                else:
+                    # Use local storage (fallback)
+                    length = 8
+                    random_string = "".join(
+                        random.choices(string.ascii_letters + string.digits, k=length)
+                    )
+                    filename = secure_filename(f"profile_{current_user.id}_{random_string}.jpg")
 
-            changeProfilePicture.save(
-                os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            )
-            image_path = f"/userUpload/{filename}"
-            
-            update_profile_picture(current_user.id, filename)
-            create_new_post(current_user.id, "Updated profile picture!", image_path)
+                    changeProfilePicture.save(
+                        os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                    )
+                    image_path = f"/userUpload/{filename}"
+                    
+                    update_profile_picture(current_user.id, filename)
+                    create_new_post(current_user.id, "Updated profile picture!", image_path)
 
-            flash("Profile picture updated!")
+                    flash("Profile picture updated!")
+            except Exception as e:
+                app.logger.error(f"Error updating profile picture: {str(e)}")
+                flash("Error updating profile picture")
 
         if not is_valid_username(changeUsername):
             flash("Username can only contain letters and numbers without spaces")
@@ -332,13 +415,27 @@ def feed():
 
             image_path = None
             if image:
-
-                filename = secure_filename(
-                    f"post_{current_user.id}_{timestamp}_{Math.random}.jpg"
-                )
                 try:
-                    image.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-                    image_path = f"/userUpload/{filename}"
+                    if STORAGE_TYPE == "blob":
+                        # Use Vercel Blob Storage
+                        blob_storage = get_blob_storage()
+                        if blob_storage:
+                            image_path = blob_storage.upload_image(image, current_user.id, "post")
+                            if not image_path:
+                                flash("Error uploading image to blob storage, post created without image")
+                        else:
+                            flash("Blob storage not available, post created without image")
+                    else:
+                        # Use local storage (fallback)
+                        length = 8
+                        random_string = "".join(
+                            random.choices(string.ascii_letters + string.digits, k=length)
+                        )
+                        filename = secure_filename(
+                            f"post_{current_user.id}_{timestamp}_{random_string}.jpg"
+                        )
+                        image.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                        image_path = f"/userUpload/{filename}"
                 except Exception as e:
                     app.logger.error(f"Error saving image: {str(e)}")
                     flash("Error uploading image, post created without image")

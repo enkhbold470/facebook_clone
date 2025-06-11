@@ -35,7 +35,7 @@
             <a class="hover:underline" href="{{ url_for('profile', username=post.username) }}">
 
                 <div class="flex items-center mb-4">
-                    <img src="/{{UPLOAD_FOLDER}}/{{ post.profile_picture }}" alt="{{ post.username }}" class="w-10 h-10 rounded-full mr-2">
+                    <img src="{{ get_image_url(post.profile_picture) }}" alt="{{ post.username }}" class="w-10 h-10 rounded-full mr-2">
                     <div>
                         <h3 class="font-bold">@{{ post.username }}</h3>
                         <p class="text-sm text-gray-500">{{ post.created_at }}</p>
