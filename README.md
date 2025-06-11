@@ -18,14 +18,13 @@ A social media platform built with Flask that allows users to share posts, image
 
 ## Tech Stack
 
-- Flask 3.1.0
-- Flask-Login 0.6.3
-- Flask-SQLAlchemy 3.1.1
-- SQLAlchemy 2.0.23
-- PostgreSQL with psycopg2-binary 2.9.9
-- Python-dotenv 1.0.1
-- Tailwind CSS
-- Gunicorn 23.0.0 (Production server)
+- **Backend:** Flask 3.1.0, Flask-Login 0.6.3, Flask-SQLAlchemy 3.1.1
+- **Database:** PostgreSQL with hybrid driver support (psycopg2-binary/pg8000)
+- **File Storage:** Vercel Blob Storage with local fallback
+- **Authentication:** Flask-Login with password hashing
+- **Frontend:** Tailwind CSS, Responsive design
+- **Deployment:** Vercel (serverless) with Gunicorn/Waitress fallback
+- **Environment:** Python-dotenv for configuration
 
 ## Installation
 
@@ -47,10 +46,11 @@ SECRET_KEY=your-secret-key-here-make-it-long-and-random
 # DATABASE_URL not needed - will use SQLite fallback
 ```
 
-**For Production (PostgreSQL):**
+**For Production (PostgreSQL + Vercel Blob Storage):**
 ```env
 SECRET_KEY=your-secret-key-here-make-it-long-and-random
 DATABASE_URL=postgresql://username:password@host:port/database_name
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### Database Setup Options
@@ -76,6 +76,39 @@ DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
 
 # The app now uses psycopg2-binary driver which properly supports SSL connections
 ```
+
+### File Storage Options
+
+**Option 1: Vercel Blob Storage (Recommended for Production)**
+For production deployments on Vercel, the app automatically uses [Vercel Blob Storage](https://vercel.com/docs/storage/vercel-blob) when the `BLOB_READ_WRITE_TOKEN` is configured:
+
+1. **Setup Vercel Blob Storage:**
+   ```bash
+   # Install Vercel CLI if not already installed
+   npm i -g vercel
+   
+   # Link your project to Vercel
+   vercel link
+   
+   # Add blob storage to your project
+   vercel blob create
+   ```
+
+2. **Configure Environment Variable:**
+   ```bash
+   # In your .env file or Vercel dashboard
+   BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+
+3. **Features:**
+   - ✅ Automatic file uploads to Vercel Blob Storage
+   - ✅ Direct CDN-served images (fast loading)
+   - ✅ Automatic cleanup when posts/profile pictures are deleted
+   - ✅ Supports JPEG, PNG, GIF, WebP image formats
+   - ✅ Scalable for production use
+
+**Option 2: Local File Storage (Development Fallback)**
+When `BLOB_READ_WRITE_TOKEN` is not configured, the app falls back to local file storage in the `userUpload` directory. This is suitable for development but not recommended for production deployments.
 
 **Option 3: Local PostgreSQL**
 ```bash

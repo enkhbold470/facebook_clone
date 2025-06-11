@@ -14,7 +14,7 @@
         <!-- edit profile picture-->
         <div class="max-w-xs">
 
-            <img title="Profile Picture" src="/userUpload/{{user.profile_picture }}" class="mb-4">
+            <img title="Profile Picture" src="{{ get_image_url(user.profile_picture) }}" class="mb-4">
         </div>
         <div class="flex justify-end">
             <a href="{{ url_for('delete_profile_picture') }}" class="text-red-500 hover:underline">Delete Profile Picture</a>

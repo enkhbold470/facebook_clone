@@ -148,8 +148,22 @@ def delete_post(post_id):
     try:
         post = Post.query.get(post_id)
         if post:
+            # Store image URL for cleanup
+            image_url = post.image
+            
             db.session.delete(post)
             db.session.commit()
+            
+            # Cleanup blob storage file if it's a blob URL
+            if image_url and (image_url.startswith('http://') or image_url.startswith('https://')):
+                try:
+                    from blob_storage import get_blob_storage
+                    blob_storage = get_blob_storage()
+                    if blob_storage:
+                        blob_storage.delete_file(image_url)
+                except Exception as cleanup_error:
+                    print(f"Warning: Failed to cleanup blob storage file: {cleanup_error}")
+            
             return True
         return False
     except Exception as e:
