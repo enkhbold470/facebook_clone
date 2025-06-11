@@ -8,3 +8,4 @@ psycopg2-binary
 pg8000
 flask-sqlalchemy
 sqlalchemy
+vercel-storage
